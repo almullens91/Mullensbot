@@ -43,12 +43,12 @@ long_dashes = "-----------------------------------------------------------------
 #INITIAL DB SETUP
 conn = sqlite3.connect(f"{db_directory}data.db")
 cursor = conn.cursor()
-cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, name TEXT NOT NULL, date_followed TEXT, level INTEGER, xp INTEGER, points INTEGER, lurking INTEGER)")
+cursor.execute("CREATE TABLE IF NOT EXISTS 'users' (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, name TEXT NOT NULL, date_followed TEXT, level INTEGER, xp INTEGER, points INTEGER, lurking INTEGER)")
 conn.commit()
 conn.close()
 conn2 = sqlite3.connect(f"{db_directory}chat.db")
 cursor2 = conn2.cursor()
-cursor2.execute("CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, name TEXT NOT NULL, date TEXT, message TEXT)")
+cursor2.execute("CREATE TABLE IF NOT EXISTS 'chat' (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, name TEXT NOT NULL, date TEXT, message TEXT)")
 conn2.commit()
 conn2.close()
 #---
@@ -122,9 +122,9 @@ def setup_logger(name: str, log_file: str, logger_list: list, level=logging.INFO
 
 async def on_ready(ready_event: EventData):
     try:
+        await bot.send_chat_message(target_id, user.id, "Mullensbot is live...")
         await ready_event.chat.join_room(target_channel)
         logger.info(f"{fortime()}: Connected to {target_channel} channel")
-        await bot.send_chat_message(target_id, user.id, "Mullensbot is live...")
     except Exception as e:
         logger.error(f"{fortime()}: Failed to connect to {target_channel} channel -- {e}")
 

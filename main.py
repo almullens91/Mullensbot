@@ -144,13 +144,13 @@ async def on_message(msg: ChatMessage):
         conn.commit()
         await command_unlurk(msg.user.id, msg.user.display_name)
     else:
-        cursor.execute("INSERT INTO users (uid, name, level, xp, points, lurking) VALUES (?, ?, ?, ?, ?, ?)", (f"{msg.user.id}", f"{msg.user.display_name}", 0, 0, 0, 0))
+        cursor.execute("INSERT INTO users (uid, name, date_followed, level, xp, points, lurking) VALUES (?, ?, ?, ?, ?, ?, ?)", (f"{msg.user.id}", f"{msg.user.display_name}", f"{fortime()}", 0, 0, 0, 0))
         conn.commit()
         conn.close()
 
     conn2 = sqlite3.connect(f"{db_directory}chat.db")
     cursor2 = conn2.cursor()
-    cursor2.execute("INSERT INTO chat (uid, name, date, message) VALUES (?, ?, ?, ?)",(f"{msg.user.id}", f"{msg.user.display_name}", f"{datetime.datetime.now()}", f"{msg.text}"))
+    cursor2.execute("INSERT INTO chat (uid, name, date, message) VALUES (?, ?, ?, ?)",(f"{msg.user.id}", f"{msg.user.display_name}", f"{fortime()}", f"{msg.text}"))
     conn2.commit()
     conn2.close()
 
@@ -174,6 +174,23 @@ async def on_sub(sub: ChatSub):
 #--------Simple Commands----------#
 async def command_joe(cmd: ChatCommand):
     await cmd.reply("FUCK YOU JOE!")
+
+async def command_followed_on(cmd: ChatCommand):
+    conn = sqlite3.connect(f"{db_directory}data.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT date_followed FROM users WHERE uid = ?", (f"{cmd.user.id}",))
+    result = cursor.fetchone()
+
+    if result is not None:
+        given_date = result[0]
+
+        print(given_date)
+
+        await cmd.reply(f"You have been following since: {given_date}")
+    else:
+        logger.info(f"{fortime()}: Error in getting user document - command_followed_on -- No user found")
+        await cmd.reply("Your follow_date could not be found. try again in a bit")
+
 
 async def command_lurk(data: ChatCommand):
     if data.user.id == user.id:
@@ -297,6 +314,7 @@ async def run():
     chat.register_command('joe', command_joe)
     chat.register_command('lurk', command_lurk)
     chat.register_command('unlurk', command_unlurk)
+    chat.register_command('datefollowed', command_followed_on)
 
     chat.start()
 

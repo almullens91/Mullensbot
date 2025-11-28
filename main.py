@@ -5,12 +5,12 @@ import asyncio
 import logging
 import datetime
 import sqlite3
+import random
 from pathlib import Path
 from dotenv import load_dotenv
 from twitchAPI.twitch import Twitch, TwitchUser
 from twitchAPI.type import AuthScope, ChatEvent
 from twitchAPI.oauth import UserAuthenticationStorageHelper
-from mongoengine import connect, disconnect_all, DEFAULT_CONNECTION_NAME
 from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 
 if getattr(sys, 'frozen', False):
@@ -32,6 +32,7 @@ bot_id = os.getenv("twitch_client")
 bot_secret = os.getenv("twitch_secret")
 mongo_login_string = os.getenv("monlog_string")
 mongo_collection = os.getenv("montwi_string")
+discord = os.getenv("discord")
 
 logger_list = []
 target_scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.USER_BOT, AuthScope.USER_WRITE_CHAT]
@@ -54,6 +55,24 @@ conn2.close()
 #---
 
 
+fish_items = [
+    {"item": "Trout", "points": 5},
+    {"item": "Catfish", "points": 5},
+    {"item": "Salmon", "points": 5},
+    {"item": "Perch", "points": 5},
+    {"item": "Tuna", "points": 5},
+    {"item": "Walleye", "points": 5},
+    {"item": "Crab", "points": 5},
+    {"item": "Small Mouth Bass", "points": 5},
+    {"item": "Large Mouth Bass", "points": 5},
+    {"item": "Carp", "points": 5},
+    {"item": "Bluegill", "points": 5},
+    {"item": "Squid", "points": 5},
+    {"item": "Clam", "points": 5},
+    {"item": "Lobster", "points": 5},
+    {"item": "Shark", "points": -500}
+]
+
 class BotSetup(Twitch):
     def __init__(self, app_id: str, app_secret: str):
         super().__init__(app_id, app_secret)
@@ -62,27 +81,6 @@ class BotSetup(Twitch):
 
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
-
-def connect_mongo(db, alias):
-    try:
-        client = connect(db=db, host=mongo_login_string, alias=alias)
-        logger.info(f"{fortime()}: MongoDB Connected\n{long_dashes}")
-        time.sleep(1)
-        client.get_default_database(db)
-        logger.info(f"{fortime()}: Database Loaded\n{long_dashes}")
-        return client
-    except Exception as e:
-        logger.error(f"{fortime()}: Error Connecting MongoDB -- {e}")
-        return None
-
-
-async def disconnect_mongo():
-    try:
-        disconnect_all()
-        logger.info(f"{long_dashes}\nDisconnected from MongoDB")
-    except Exception as e:
-        logger.error(f"{fortime()}: Error Disconnection MongoDB -- {e}")
-        return
 
 
 def fortime():
@@ -102,6 +100,7 @@ async def log_shutdown(logger_list):
         except Exception as e:
             print(e)
             pass
+
 
 def setup_logger(name: str, log_file: str, logger_list: list, level=logging.INFO):
     try:
@@ -127,7 +126,6 @@ async def on_ready(ready_event: EventData):
         logger.info(f"{fortime()}: Connected to {target_channel} channel")
     except Exception as e:
         logger.error(f"{fortime()}: Failed to connect to {target_channel} channel -- {e}")
-
 
 
 async def on_message(msg: ChatMessage):
@@ -171,9 +169,24 @@ async def on_sub(sub: ChatSub):
         conn.commit()
         conn.close()
 
+
 #--------Simple Commands----------#
+async def command_discord(cmd: ChatCommand):
+    await cmd.reply(f"Follow my server on Discord: {discord}")
+
+
+#async def command_shoutout(cmd: ChatCommand):
+#   so_user = cmd.splitlines(after, '@')
+#   await cmd.reply(f"{so_user} is the best, thank them by giving them a follow!")
+
+
 async def command_joe(cmd: ChatCommand):
-    await cmd.reply("FUCK YOU JOE!")
+    await cmd.reply("FUCK YOU JOE, you asshole!!")
+
+
+async def command_slaps(cmd: ChatCommand):
+    await cmd.reply(f"{cmd.user.display_name} slapped the streamer because they felt like it!")
+
 
 async def command_followed_on(cmd: ChatCommand):
     conn = sqlite3.connect(f"{db_directory}data.db")
@@ -183,8 +196,6 @@ async def command_followed_on(cmd: ChatCommand):
 
     if result is not None:
         given_date = result[0]
-
-        print(given_date)
 
         await cmd.reply(f"You have been following since: {given_date}")
     else:
@@ -203,6 +214,7 @@ async def command_lurk(data: ChatCommand):
         await data.reply(f"{data.user.display_name} has returned to the chat...")
         conn.close()
 
+
 async def command_unlurk(user_id: str, user_name: str):
     if user_id == user.id:
         return
@@ -219,13 +231,27 @@ async def command_unlurk(user_id: str, user_name: str):
 
 #--------Mini Games---------------#
 async def command_fish(cmd: ChatCommand):
-    await cmd.reply("Fishing isn't available yet")
-    pass
+    random_fish = random.choice(fish_items)
+    conn = sqlite3.connect(f"{db_directory}data.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT points FROM users WHERE uid = ?", (f"{cmd.user.id}",))
+    result = cursor.fetchone()
+
+    if result is not None:
+        current_points = result[0]
+        new_points = current_points + random_fish['points']
+        cursor.execute("UPDATE users SET points = ? WHERE uid = ?", (new_points, f"{cmd.user.id}"))
+        conn.commit()
+        conn.close()
+    await cmd.reply(f"You caught a {random_fish['item']} worth {random_fish['points']} points! Your now have {new_points} points.")
+
 
 #async def command_kick(cmd: ChatCommand):
 #    await cmd.reply(f"You kicked {random.user.display_name}")
 
 #--------End Mini Games-----------#
+
 
 async def test_internal_command():
     await bot.send_chat_message(target_id, user.id, "TEST MSG FROM BOT")
@@ -237,8 +263,6 @@ async def run():
         await asyncio.sleep(1)
         await bot.close()
         logger.info(f"{long_dashes}\nTwitch Processes Shutdown")
-        await asyncio.sleep(1)
-        await disconnect_mongo()
         await asyncio.sleep(1)
         logger.info(f"{long_dashes}\nShutdown Sequence Completed")
         await bot.send_chat_message(target_id, user.id, "Mullensbot is leaving the chat...")
@@ -311,10 +335,14 @@ async def run():
     chat.register_event(ChatEvent.READY, on_ready)
     chat.register_event(ChatEvent.MESSAGE, on_message)
     chat.register_event(ChatEvent.SUB, on_sub)
+    chat.register_command('discord', command_discord)
+    #chat.register_command('so', command_shoutout)
     chat.register_command('joe', command_joe)
+    chat.register_command('slaps', command_slaps)
     chat.register_command('lurk', command_lurk)
     chat.register_command('unlurk', command_unlurk)
     chat.register_command('datefollowed', command_followed_on)
+    chat.register_command('fish', command_fish)
 
     chat.start()
 
@@ -394,11 +422,7 @@ if __name__ == "__main__":
                     break
                 elif user_input == 1:
                     logger.info(long_dashes)
-                    mongo_db = connect_mongo(mongo_collection, DEFAULT_CONNECTION_NAME)
                     time.sleep(1)
-                    if mongo_db is None:
-                        logger.error(f"{fortime()}: Error connecting to DB!! Exiting App")
-                        break
                     twitch_helper = asyncio.run(auth_bot())
                     user = asyncio.run(get_auth_user_id())
                     if user is not None:

@@ -6,6 +6,7 @@ import logging
 import datetime
 import random
 import json
+import glob
 import shutil
 from pathlib import Path
 from dotenv import load_dotenv
@@ -21,10 +22,11 @@ from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 #     (x) = Not Started
 #     Remove when completed
 #   Phase 1:
+#    -(x)add commands list(priority for carnagebot)
 #    -(x)add fight command for user fighting
 #    -(x)add more fish to "ocean"
 #    -(-)add hype event trigger
-#    -(x)change followage to accurately track follow age
+#    -(x)change followage to accurately track follow age(currently using stream elements)
 #    -(-)add history in user docs for commands
 #   Phase 2:
 #    -(x)add user logging(in on_messages[each message resets a timer for the user, if timer(600) is expired, they are removed from the log, thereby making them unable to be targeted in minigames])
@@ -48,19 +50,23 @@ from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 #    -(x)add 'settitle' command for stream title
 #    -(x)add 'setcategory' command for stream category
 #    -(x)add inventory command for fish and dino games(use whisper)
-#    -(x)fix bot restart(not included in bot[commented out, line 1807)
 #    -(x)dino minigame
 #    -(x)add youtubeapi
 #   Phase 3:
-#    -(x)add tiktok api
+#    -(x)add TikTok api
 #    -(x)add kick api
 #    -(x)dino fighting
 #    -(x)Hunting
 #   Phase 4:
 #    -(x)Dino Store
+#      armor
+#      weapons
 #   Phase 5(Mullensbot only):
 #    -(x)Travel
 #    -(x)Quest
+#    -(x)Create Music Player
+#      sr command(song request)
+#    -(x)Create UI Alerts(popups)
 
 load_dotenv()
 
@@ -101,8 +107,10 @@ checkin_directory = f"{data_path}/checkin/"
 bet_history = f"{history_dir}/bet/"
 bite_history = f"{history_dir}/bite/"
 fish_history = f"{history_dir}/fish/"
+iq_history = f"{history_dir}/iq/"
 kick_history = f"{history_dir}/kick/"
 pinch_history = f"{history_dir}/pinch/"
+phone_history = f"{history_dir}/phone/"
 pp_history = f"{history_dir}/pp/"
 slap_history = f"{history_dir}/slap/"
 autocast_tracker = f"{fish_history}/autocasts/"
@@ -120,7 +128,9 @@ Path(checkin_directory).mkdir(parents=True, exist_ok=True)
 Path(bet_history).mkdir(parents=True, exist_ok=True)
 Path(bite_history).mkdir(parents=True, exist_ok=True)
 Path(fish_history).mkdir(parents=True, exist_ok=True)
+Path(iq_history).mkdir(parents=True, exist_ok=True)
 Path(pinch_history).mkdir(parents=True, exist_ok=True)
+Path(phone_history).mkdir(parents=True, exist_ok=True)
 Path(pp_history).mkdir(parents=True, exist_ok=True)
 Path(slap_history).mkdir(parents=True, exist_ok=True)
 Path(kick_history).mkdir(parents=True, exist_ok=True)
@@ -138,6 +148,7 @@ bet_log = os.path.join(bet_directory, "pot.json")
 channel_doc = os.path.join(data_path, "channel_doc.json")
 banned_phrases = os.path.join(data_path, "banned_phrases.txt")
 bot_doc = os.path.join(data_path, "bot_doc.json")
+
 
 # -----Bot Doc creation(for resets to work)
 if not os.path.exists(bot_doc):
@@ -201,6 +212,7 @@ if not os.path.exists(banned_phrases):
 else:
     pass
 # -----end banned phrases creation
+
 
 logger_list = []
 target_scopes = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT, AuthScope.USER_BOT, AuthScope.USER_WRITE_CHAT,AuthScope.BITS_READ, AuthScope.CLIPS_EDIT, AuthScope.CHANNEL_BOT,
@@ -785,13 +797,9 @@ async def xp_level_check(user_id: str, user_name: str):
 
 
 async def on_message(msg: ChatMessage):
-    if msg.text.startswith("!lurk") or msg.text.startswith("!unlurk"):
-        return
-    elif msg.text.startswith("!fish"):
+    if msg.text.startswith("!"):
         return
     elif msg.text.startswith(f"{bot_name}"):
-        return
-    elif msg.text.startswith("!so"):
         return
     else:
         with open(banned_phrases, "r") as file:
@@ -955,21 +963,49 @@ async def on_sub(sub: ChatSub):
 # -----end Events
 
 
-# --------Simple Commands----------#
+# -----Begin Chat Message Commands
 async def command_discord(cmd: ChatCommand):
-    await cmd.reply(f"Come to the darkside, join the community!: {discord}")
+    await cmd.reply("Come to the darkside, join the community!: https://discord.gg/2gXGYMZg")
 
-
-async def command_joe(cmd: ChatCommand):
-    await cmd.reply("FUCK YOU JOE, you asshole!!")
-
-
-async def command_phone(cmd: ChatCommand):
-    await cmd.reply(f"{cmd.user.display_name} threw their phone")
-
-
+async def command_donate(cmd: ChatCommand):
+    await cmd.reply("It's not required, but you can donate to me directly on the following services: Cashapp = $almullens91")
+    
 async def command_tech(cmd: ChatCommand):
     await cmd.reply("It wouldn't be a stream without tech issues.")
+    
+async def command_joe(cmd: ChatCommand):
+    await cmd.reply("FUCK YOU JOE, you asshole!!")
+# -----End Chat Message Commands
+
+
+# --------Simple Commands----------
+async def command_phone(cmd: ChatCommand):
+    distance = random.randint(1, 70)
+    if not os.path.exists(f"{phone_history}/{fordate()}.json"):
+        default_data = {
+            "date": fordate(),
+            "times": 0
+        }
+        with open(f"{phone_history}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(default_data, f, indent=4)
+        await asyncio.sleep(1)
+        with open(f"{phone_history}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        times = data['times']
+        new_times = times + 1
+        data['times'] = new_times
+        with open(f"{phone_history}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        await cmd.reply(f"{cmd.user.display_name}, you threw that phone {distance} yards. {new_times} phones have been thrown today.")
+    else:
+        with open(f"{phone_history}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        times = data['times']
+        new_times = times + 1
+        data['times'] = new_times
+        with open(f"{phone_history}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        await cmd.reply(f"{cmd.user.display_name}, you threw that phone {distance} yards. {new_times} phones have been thrown today.")
 
 
 async def command_shoutout(cmd: ChatCommand):
@@ -1605,14 +1641,106 @@ async def command_pinch(cmd: ChatCommand):
 async def command_pp(cmd: ChatCommand):
     user_id = cmd.user.id
     user_name = cmd.user.display_name
-    size = random.randint(1, 15)
-    await cmd.reply(f"{user_name}, your pp size is {size} inches...")
+    cmd_pp = cmd.text.lstrip("!pp")
+    if not os.path.exists(f"{pp_history}/{user_id}/{fordate()}.json"):
+        Path(f"{pp_history}/{user_id}/").mkdir(parents=True, exist_ok=True)
+        default_data = {
+            "date": fordate(),
+            "size": 0
+        }
+        with open(f"{pp_history}/{user_id}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(default_data, f, indent=4)
+        await asyncio.sleep(1)
+        pp_size = random.randint(1, 15)
+        with open(f"{pp_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        current_size = data['size']
+        new_size = pp_size
+        data['size'] = new_size
+        with open(f"{pp_history}/{user_id}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        await cmd.reply(f"{cmd.user.display_name}, your pp size for today is {pp_size} inches.")
+    elif cmd_pp.startswith(" history"):
+        folder_path = f"{pp_history}/{user_id}/"
+        files = glob.glob(os.path.join(folder_path, '*.json'))
+        
+        files.sort(key=os.path.getmtime)
+        last_five_files = files[-5:]
+        
+        combined_output = []
+        
+        for file_path in last_five_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                date = data['date']
+                size = data['size']
+                combined_output.append(f"{date}={size}")
+            except Exception as e:
+                logger.info(f"{fortime()}: Error in pp_history -- {e}")
+                await cmd.reply(f"{user_name}, couldn't retrieve your history. Something broke.")
+        clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
+        #logger.info(f"{fortime()}: pp_history returned: clean_output = {clean_output}")
+        
+        await cmd.reply(f"{user_name}, your pp history is as follows: {clean_output}")
+    else:
+        with open(f"{pp_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        todays_size = data['size']
+        await cmd.reply(f"{cmd.user.display_name}, your pp size for today has already been chaecked. It's {todays_size} inches.")
+
+
 
 
 async def command_iq(cmd: ChatCommand):
+    user_id = cmd.user.id
     user_name = cmd.user.display_name
+    cmd_iq = cmd.text.lstrip("!iq")
     iq = random.randint(0, 500)
-    await cmd.reply(f"{user_name}, your iq is {iq}...")
+    if not os.path.exists(f"{iq_history}/{user_id}/{fordate()}.json"):
+        Path(f"{iq_history}/{user_id}/").mkdir(parents=True, exist_ok=True)
+        default_data = {
+            "date": fordate(),
+            "iq": 0
+        }
+        with open(f"{iq_history}/{user_id}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(default_data, f, indent=4)
+        await asyncio.sleep(1)
+        with open(f"{iq_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        current_iq = data['iq']
+        new_iq = iq
+        data['iq'] = new_iq
+        with open(f"{iq_history}/{user_id}/{fordate()}.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        await cmd.reply(f"{cmd.user.display_name}, your iq for today is {iq}.")
+    elif cmd_iq.startswith(" history"):
+    	  folder_path = f"{iq_history}/{user_id}/"
+    	  files = glob.glob(os.path.join(folder_path, '*.json'))
+    	  
+    	  files.sort(key=os.path.getmtime)
+    	  last_five_files = files[-5:]
+    	  
+    	  combined_output = []
+    	  
+    	  for file_path in last_five_files:
+    	  	   try:
+    	  	   	 with open(file_path, "r", encoding="utf-8") as f:
+    	  	   	 	  data = json.load(f)
+    	  	   	 date = data['date']
+    	  	   	 iq = data['iq']
+    	  	   	 combined_output.append(f"{date}={iq}")
+    	  	   except Exception as e:
+    	  	   	logger.info(f"{fortime()}: Error in pp_history -- {e}")
+    	  	   	await cmd.reply(f"{user_name}, couldn't load your history. Something broke.")
+    	  clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
+    	  
+    	  await cmd.reply(f"{user_name}, your iq history is as follows: {clean_output}")
+    else:
+        with open(f"{iq_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        todays_iq = data['iq']
+        await cmd.reply(f"{cmd.user.display_name}, you have already checked your iq for today. It's {todays_iq}")
 
 
 async def command_lick(cmd: ChatCommand):
@@ -1906,12 +2034,89 @@ async def steal_command(cmd: ChatCommand):
         await cmd.reply(f"{cmd.user.display_name}, you must target a user(!steal @user name).")
 
 
+async def rob_command(cmd: ChatCommand):
+    defend_chance = 0.75
+    defend_roll = random.random() < defend_chance
+    cmd_rob = cmd.text.lstrip("!rob")
+    if cmd_rob.startswith(" @"):
+        target = cmd.text.lstrip("!rob @")
+        if defend_roll == False:
+            with open(user_log, "r", encoding="utf-8") as file:
+                for line in file:
+                    clean_line = line.strip()
+                    if target in clean_line:
+                        targets_id = clean_line.split(' ', 2)[-1]
+                        with open(f"{user_directory}{targets_id}.json", "r", encoding="utf-8") as f:
+                            target_data = json.load(f)
+                        targets_current_points = target_data['points']
+                        targets_new_points = 0
+                        target_data['points'] = targets_new_points
+                        with open(f"{user_directory}{targets_id}.json", "w", encoding="utf-8") as f:
+                            json.dump(target_data, f, indent=4)
+                        await asyncio.sleep(1)
+                        with open(f"{user_directory}{cmd.user.id}.json", "r", encoding="utf-8") as g:
+                            attacker_data = json.load(g)
+                        attacker_current_points = attacker_data['points']
+                        attacker_new_points = attacker_current_points + targets_current_points
+                        attacker_data['points'] = attacker_new_points
+                        with open(f"{user_directory}{cmd.user.id}.json", "w", encoding="utf-8") as g:
+                            json.dump(attacker_data, g, indent=4)
+                        await cmd.reply(f"{cmd.user.display_name}, you successfully robbed {target}. You gained {targets_current_points} points in you endeavor. You now have {attacker_new_points} points")
+        else:
+            await cmd.reply(f"{cmd.user.display_name}, you attempted to rob {target}, but they were able to get away.")
+    else:
+        await cmd.reply(f"{cmd.user.display_name}, you must target someone.")
+
+
 async def test_internal_command():
     await bot.send_chat_message(target_id, user.id, "Hello, I'm still here...")
 # --------End Simple Commands------#
 
 
 #--Streamer & Mod Commands
+async def command_control(cmd: ChatCommand):
+    cmd_ctrl = cmd.text.lstrip("!cmd")
+    if cmd.user.id == target_id:
+        if cmd_ctrl.startswith(" add"):
+            message = cmd_ctrl.split(' ', 3)[-1]
+            #logger.info(f"{fortime()}: cmd_ctrl returned message = {message}")
+            cmd_trigger = cmd_ctrl.lstrip(" add ").rstrip(message)
+            with open(cmd_list, "r") as file:
+                for line in file:
+                    clean_line = line.strip()
+                    if not cmd_trigger in clean_line:
+                        with open(cmd_list, "a") as f:
+                            f.write(f"{cmd_trigger} = {message}\n")
+                            f.close()
+                            await cmd.reply("Command added successfully")
+                            break
+                    else:
+                        await cmd.reply("That command already exists.")
+                        break
+        elif cmd_ctrl.startswith(" remove"):
+            cmd_trigger = cmd_ctrl.lstrip(" remove ")
+            #logger.info(f"{fortime()}: cmd_ctrl returned cmd_trigger = {cmd_trigger}")
+            found = False
+            with open(cmd_list, "r") as file:
+                lines = file.readlines()
+
+            with open(cmd_list, "r") as f:
+                for line in lines:
+                    if cmd_trigger not in line:
+                        f.write(str(line))
+                    else:
+                        found = True
+
+            if found:
+                await cmd.reply("Command removed successfully")
+            else:
+                await cmd.reply("Command not found")
+        else:
+            pass
+    else:
+        pass
+
+
 async def add_banned_term(term: str):
     with open(banned_phrases, "a") as f:
         f.write(nl)
@@ -3770,15 +3975,22 @@ async def run():
         chat.register_event(ChatEvent.MESSAGE, on_message)
         chat.register_event(ChatEvent.SUB, on_sub)
         # ---end event activation
-
+        
+        # ---chat message command activation
+        chat.register_command('discord', command_discord)
+        chat.register_command('donate', command_donate)
+        chat.register_command('tech', command_tech)
+        chat.register_command('joe', command_joe)
+        # ---end chat message command activation
+        
         # ---simple command activation
         chat.register_command('bite', command_bite)
-        chat.register_command('discord', command_discord)
         chat.register_command('so', command_shoutout)
-        chat.register_command('joe', command_joe)
         chat.register_command('slap', command_slap)
         chat.register_command('lurk', command_lurk)
+        #To be fixed(VVVVV)
         #chat.register_command('followage', command_followage)
+        #To be fixed(^^^^^)
         chat.register_command('pointscheck', command_pointscheck)
         chat.register_command('checkpoints', command_pointscheck)
         chat.register_command('kick', command_kick)
@@ -3797,9 +4009,11 @@ async def run():
         chat.register_command('lick', command_lick)
         chat.register_command('checkin', checkin_command)
         chat.register_command('bonk', command_bonk)
-        chat.register_command('tech', command_tech)
         chat.register_command('phone', command_phone)
         chat.register_command('steal', steal_command)
+        chat.register_command('jail', command_jail)
+        chat.register_command('givepoints', givepoints_command)
+        chat.register_command('rob', rob_command)
         # ---end simple command activation
 
         # minigame activation
@@ -3813,12 +4027,11 @@ async def run():
         chat.register_command('pause', command_pause)
         chat.register_command('resume', command_resume)
         chat.register_command('banterm', banned_term_command)
-        chat.register_command('jail', command_jail)
-        chat.register_command('givepoints', givepoints_command)
         chat.register_command('sort', sort_command)
         chat.register_command('clear', archive_delete_command)
         chat.register_command('mkbkup', mkbkup_command)
         chat.register_command('addpoints', addpoints_command)
+        chat.register_command('cmd', command_control)
         # ---end
 
         chat.start()
@@ -3868,14 +4081,21 @@ async def run():
         chat.register_event(ChatEvent.SUB, on_sub)
         # ---end event activation
 
+        # ---chat message command activation
+        chat.register_command('discord', command_discord)
+        chat.register_command('donate', command_donate)
+        chat.register_command('tech', command_tech)
+        chat.register_command('joe', command_joe)
+        # ---end chat message command activation
+        
         # ---simple command activation
         chat.register_command('bite', command_bite)
-        chat.register_command('discord', command_discord)
         chat.register_command('so', command_shoutout)
-        chat.register_command('joe', command_joe)
         chat.register_command('slap', command_slap)
         chat.register_command('lurk', command_lurk)
+        #To be fixed(VVVVV)
         #chat.register_command('followage', command_followage)
+        #To be fixed(^^^^^)
         chat.register_command('pointscheck', command_pointscheck)
         chat.register_command('checkpoints', command_pointscheck)
         chat.register_command('kick', command_kick)
@@ -3894,9 +4114,11 @@ async def run():
         chat.register_command('lick', command_lick)
         chat.register_command('checkin', checkin_command)
         chat.register_command('bonk', command_bonk)
-        chat.register_command('tech', command_tech)
         chat.register_command('phone', command_phone)
         chat.register_command('steal', steal_command)
+        chat.register_command('jail', command_jail)
+        chat.register_command('givepoints', givepoints_command)
+        chat.register_command('rob', rob_command)
         # ---end simple command activation
 
         # minigame activation
@@ -3904,18 +4126,17 @@ async def run():
         chat.register_command('fish', command_fish)
         # ---end minigame activation
 
-        # ---streamer only commands
+        # ---mod/streamer only commands
         chat.register_command('islive', live_command)
         chat.register_command('reset', reset_command)
         chat.register_command('pause', command_pause)
         chat.register_command('resume', command_resume)
         chat.register_command('banterm', banned_term_command)
-        chat.register_command('jail', command_jail)
-        chat.register_command('givepoints', givepoints_command)
         chat.register_command('sort', sort_command)
         chat.register_command('clear', archive_delete_command)
         chat.register_command('mkbkup', mkbkup_command)
         chat.register_command('addpoints', addpoints_command)
+        chat.register_command('cmd', command_control)
         # ---end
 
         chat.start()

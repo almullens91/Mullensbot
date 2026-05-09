@@ -109,6 +109,8 @@ bite_history = f"{history_dir}/bite/"
 fish_history = f"{history_dir}/fish/"
 iq_history = f"{history_dir}/iq/"
 kick_history = f"{history_dir}/kick/"
+lick_history = f"{history_dir}/lick/"
+pants_history = f"{history_dir}/pants/"
 pinch_history = f"{history_dir}/pinch/"
 phone_history = f"{history_dir}/phone/"
 pp_history = f"{history_dir}/pp/"
@@ -129,11 +131,13 @@ Path(bet_history).mkdir(parents=True, exist_ok=True)
 Path(bite_history).mkdir(parents=True, exist_ok=True)
 Path(fish_history).mkdir(parents=True, exist_ok=True)
 Path(iq_history).mkdir(parents=True, exist_ok=True)
+Path(kick_history).mkdir(parents=True, exist_ok=True)
+Path(lick_history).mkdir(parents=True, exist_ok=True)
+Path(pants_history).mkdir(parents=True, exist_ok=True)
 Path(pinch_history).mkdir(parents=True, exist_ok=True)
 Path(phone_history).mkdir(parents=True, exist_ok=True)
 Path(pp_history).mkdir(parents=True, exist_ok=True)
 Path(slap_history).mkdir(parents=True, exist_ok=True)
-Path(kick_history).mkdir(parents=True, exist_ok=True)
 Path(autocast_tracker).mkdir(parents=True, exist_ok=True)
 Path(autocast_archive).mkdir(parents=True, exist_ok=True)
 
@@ -980,6 +984,7 @@ async def command_joe(cmd: ChatCommand):
 
 # --------Simple Commands----------
 async def command_phone(cmd: ChatCommand):
+    cmd_phone = cmd.text.lstrip("!phone")
     distance = random.randint(1, 70)
     if not os.path.exists(f"{phone_history}/{fordate()}.json"):
         default_data = {
@@ -997,6 +1002,30 @@ async def command_phone(cmd: ChatCommand):
         with open(f"{phone_history}/{fordate()}.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
         await cmd.reply(f"{cmd.user.display_name}, you threw that phone {distance} yards. {new_times} phones have been thrown today.")
+    elif cmd_phone.startswith(" history"):
+        user_name = cmd.user.display_name
+        folder_path = f"{phone_history}"
+        files = glob.glob(os.path.join(folder_path, '*.json'))
+
+        files.sort(key=os.path.getmtime)
+        last_five_files = files[-5:]
+
+        combined_output = []
+
+        for file_path in last_five_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                date = data['date']
+                times = data['times']
+                combined_output.append(f"{date}={times}")
+            except Exception as e:
+                logger.info(f"{fortime()}: Error in phone_history -- {e}")
+                await cmd.reply(f"{user_name}, couldn't retrieve history. Something broke.")
+        clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
+        #logger.info(f"{fortime()}: pp_history returned: clean_output = {clean_output}")
+
+        await cmd.reply(f"Phone history is as follows: {clean_output}")
     else:
         with open(f"{phone_history}/{fordate()}.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -1663,12 +1692,12 @@ async def command_pp(cmd: ChatCommand):
     elif cmd_pp.startswith(" history"):
         folder_path = f"{pp_history}/{user_id}/"
         files = glob.glob(os.path.join(folder_path, '*.json'))
-        
+
         files.sort(key=os.path.getmtime)
         last_five_files = files[-5:]
-        
+
         combined_output = []
-        
+
         for file_path in last_five_files:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -1681,15 +1710,13 @@ async def command_pp(cmd: ChatCommand):
                 await cmd.reply(f"{user_name}, couldn't retrieve your history. Something broke.")
         clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
         #logger.info(f"{fortime()}: pp_history returned: clean_output = {clean_output}")
-        
+
         await cmd.reply(f"{user_name}, your pp history is as follows: {clean_output}")
     else:
         with open(f"{pp_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
             data = json.load(f)
         todays_size = data['size']
         await cmd.reply(f"{cmd.user.display_name}, your pp size for today has already been chaecked. It's {todays_size} inches.")
-
-
 
 
 async def command_iq(cmd: ChatCommand):
@@ -1708,34 +1735,30 @@ async def command_iq(cmd: ChatCommand):
         await asyncio.sleep(1)
         with open(f"{iq_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-        current_iq = data['iq']
         new_iq = iq
         data['iq'] = new_iq
         with open(f"{iq_history}/{user_id}/{fordate()}.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
         await cmd.reply(f"{cmd.user.display_name}, your iq for today is {iq}.")
     elif cmd_iq.startswith(" history"):
-    	  folder_path = f"{iq_history}/{user_id}/"
-    	  files = glob.glob(os.path.join(folder_path, '*.json'))
-    	  
-    	  files.sort(key=os.path.getmtime)
-    	  last_five_files = files[-5:]
-    	  
-    	  combined_output = []
-    	  
-    	  for file_path in last_five_files:
-    	  	   try:
-    	  	   	 with open(file_path, "r", encoding="utf-8") as f:
-    	  	   	 	  data = json.load(f)
-    	  	   	 date = data['date']
-    	  	   	 iq = data['iq']
-    	  	   	 combined_output.append(f"{date}={iq}")
-    	  	   except Exception as e:
-    	  	   	logger.info(f"{fortime()}: Error in pp_history -- {e}")
-    	  	   	await cmd.reply(f"{user_name}, couldn't load your history. Something broke.")
-    	  clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
-    	  
-    	  await cmd.reply(f"{user_name}, your iq history is as follows: {clean_output}")
+        folder_path = f"{iq_history}/{user_id}/"
+        files = glob.glob(os.path.join(folder_path, '*.json'))
+
+        files.sort(key=os.path.getmtime)
+        last_five_files = files[-5:]
+        combined_output = []
+        for file_path in last_five_files:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    date = data['date']
+                    iq = data['iq']
+                    combined_output.append(f"{date}={iq}")
+            except Exception as e:
+                logger.info(f"{fortime()}: Error in pp_history -- {e}")
+                await cmd.reply(f"{user_name}, couldn't load your history. Something broke.")
+        clean_output = str(combined_output).strip("[]'").replace("', '", " | ")
+        await cmd.reply(f"{user_name}, your iq history is as follows: {clean_output}")
     else:
         with open(f"{iq_history}/{user_id}/{fordate()}.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -1744,46 +1767,307 @@ async def command_iq(cmd: ChatCommand):
 
 
 async def command_lick(cmd: ChatCommand):
-    evade_chance = 0.32
-    evade_roll = random.random() < evade_chance
-    cmd_lick = cmd.text.lstrip("!lick ")
-    if evade_roll == False:
-        if cmd_lick.startswith("@"):
-            target = cmd_lick
-            await cmd.reply(f"{cmd.user.display_name} licked {target} because they felt like it.")
+    user_id = cmd.user.id
+    cmd_lick = cmd.text.lstrip("!lick")
+    if cmd_lick.startswith(" history"):
+        if not os.path.exists(f"{lick_history}{user_id}.json"):
+            await cmd.reply(f"{cmd.user.display_name}, you currently don't have any history")
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
+            logger.info(f"{fortime()}: Created lick_history for {user_id}")
+            delete_last_line()
         else:
-            await cmd.reply(f"{cmd.user.display_name} licked the streamer because they felt like it.")
+            with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            attacks = data['attacks']
+            await cmd.reply(f"{cmd.user.display_name}, you have successfully licked {attacks} people")
+    elif cmd_lick.startswith(" @"):
+        if not os.path.exists(f"{lick_history}{user_id}.json"):
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
+            logger.info(f"{fortime()}: Created lick_history for {user_id}")
+            delete_last_line()
+            await asyncio.sleep(1)
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            if evade_roll == False:
+                target = cmd_lick
+                await cmd.reply(f"{cmd.user.display_name} licked {target} because they felt like it.")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                target = cmd_lick
+                await cmd.reply(f"{target}, {cmd.user.display_name} attempted to lick you, but you were able to evade")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+        else:
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            if evade_roll == False:
+                target = cmd_lick
+                await cmd.reply(f"{cmd.user.display_name} licked {target} because they felt like it.")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                target = cmd_lick
+                await cmd.reply(f"{target}, {cmd.user.display_name} attempted to lick you, but you were able to evade")
+                with open(f"{pinch_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
     else:
-        if cmd_lick.startswith("@"):
-            target = cmd_lick
-            await cmd.reply(f"{target}, {cmd.user.display_name} attempted to lick you. but you were able to evade")
+        if not os.path.exists(f"{lick_history}{user_id}.json"):
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
+            logger.info(f"{fortime()}: Created lick_history for {user_id}")
+            delete_last_line()
+            await asyncio.sleep(1)
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            if evade_roll == False:
+                await cmd.reply(f"{cmd.user.display_name} licked the streamer because they felt like it.")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                await cmd.reply(
+                    f"{cmd.user.display_name}, you attempted to lick the streamer, but they were able to evade")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
         else:
-            await cmd.reply(f"{cmd.user.display_name}, you attempted to lick the streamer, but they were able to evade")
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            if evade_roll == False:
+                await cmd.reply(f"{cmd.user.display_name} licked the streamer because they felt like it.")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                await cmd.reply(
+                    f"{cmd.user.display_name}, you attempted to lick the streamer, but they were able to evade")
+                with open(f"{lick_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{lick_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
 
 
 async def command_pants(cmd: ChatCommand):
-    evade_chance = 0.32
-    evade_roll = random.random() < evade_chance
-    pant_items = [
-        {"item": "Wearing Boxers"},
-        {"item": "Wearing Briefs"},
-        {"item": "Going Commando"}
-    ]
-
-    cmd_pants = cmd.text.lstrip("!pants ")
-    if evade_roll == False:
-        ran_item = random.choice(pant_items)
-        if cmd_pants.startswith("@"):
-            target = cmd_pants
-            await cmd.reply(f"{cmd.user.display_name} pantsed {target} and found them {ran_item['item']}")
+    user_id = cmd.user.id
+    cmd_pants = cmd.text.lstrip("!pants")
+    if cmd_pants.startswith(" history"):
+        if not os.path.exists(f"{pants_history}{user_id}.json"):
+            await cmd.reply(f"{cmd.user.display_name}, you don't have any history currently")
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
         else:
-            await cmd.reply(f"{cmd.user.display_name} pantsed the streamer and found them {ran_item['item']}")
+            with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            attacks = data['attacks']
+            await cmd.reply(f"{cmd.user.display_name}, you have successfully pantsed {attacks} people")
+    elif cmd_pants.startswith(" @"):
+        if not os.path.exists(f"{pants_history}{user_id}.json"):
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
+            await asyncio.sleep(1)
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            pants_items = [
+                {"item": "wearing boxers"},
+                {"item": "wearing briefs"},
+                {"item": "going commando"}
+            ]
+            pants_item = random.choice(pants_items)
+            if evade_roll == False:
+                target = cmd_pants
+                await cmd.reply(f"{cmd.user.display_name} pantsed {target} and caught them {pants_item['item']}")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                target = cmd_pants
+                await cmd.reply(f"{target}, {cmd.user.display_name} attempted to pants you, but you were able to evade")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+        else:
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            pants_items = [
+                {"item": "wearing boxers"},
+                {"item": "wearing briefs"},
+                {"item": "going commando"}
+            ]
+            pants_item = random.choice(pants_items)
+            if evade_roll == False:
+                target = cmd_pants
+                await cmd.reply(f"{cmd.user.display_name} pantsed {target} and caught them {pants_item['item']}")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                target = cmd_pants
+                await cmd.reply(f"{target}, {cmd.user.display_name} attempted to pants you, but you were able to evade")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
     else:
-        if cmd_pants.startswith("@"):
-            target = cmd_pants
-            await cmd.reply(f"{target}, {cmd.user.display_name} attempted to pants you, but you were able to evade")
+        if not os.path.exists(f"{pants_history}{user_id}.json"):
+            default_data = {
+                "attacks": 0,
+                "attacked": 0,
+                "evades": 0,
+                "evaded": 0,
+                "users_attacked": [],
+                "users_defend": []
+            }
+            with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                json.dump(default_data, f, indent=4)
+            await asyncio.sleep(1)
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            pants_items = [
+                {"item": "wearing boxers"},
+                {"item": "wearing briefs"},
+                {"item": "going commando"}
+            ]
+            pants_item = random.choice(pants_items)
+            if evade_roll == False:
+                await cmd.reply(f"{cmd.user.display_name} pantsed the streamer and caught them {pants_item['item']}")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                await cmd.reply(
+                    f"{cmd.user.display_name}, you attempted to pants the streamer, but they were able to evade")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
         else:
-            await cmd.reply(f"{cmd.user.display_name}, you attempted to pants the streamer, but they were able to evade")
+            evade_chance = 0.32
+            evade_roll = random.random() < evade_chance
+            pants_items = [
+                {"item": "wearing boxers"},
+                {"item": "wearing briefs"},
+                {"item": "going commando"}
+            ]
+            pants_item = random.choice(pants_items)
+            if evade_roll == False:
+                await cmd.reply(f"{cmd.user.display_name} bit the streamer with {pants_item['item']}")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
+            else:
+                await cmd.reply(
+                    f"{cmd.user.display_name}, you attempted to pants the streamer, but they were able to evade")
+                with open(f"{pants_history}{user_id}.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                attacks = data['attacks']
+                new_attacks = attacks + 1
+                data['attacks'] = new_attacks
+                with open(f"{pants_history}{user_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4)
 
 
 async def command_pounce(cmd: ChatCommand):
@@ -2074,49 +2358,6 @@ async def test_internal_command():
 
 
 #--Streamer & Mod Commands
-async def command_control(cmd: ChatCommand):
-    cmd_ctrl = cmd.text.lstrip("!cmd")
-    if cmd.user.id == target_id:
-        if cmd_ctrl.startswith(" add"):
-            message = cmd_ctrl.split(' ', 3)[-1]
-            #logger.info(f"{fortime()}: cmd_ctrl returned message = {message}")
-            cmd_trigger = cmd_ctrl.lstrip(" add ").rstrip(message)
-            with open(cmd_list, "r") as file:
-                for line in file:
-                    clean_line = line.strip()
-                    if not cmd_trigger in clean_line:
-                        with open(cmd_list, "a") as f:
-                            f.write(f"{cmd_trigger} = {message}\n")
-                            f.close()
-                            await cmd.reply("Command added successfully")
-                            break
-                    else:
-                        await cmd.reply("That command already exists.")
-                        break
-        elif cmd_ctrl.startswith(" remove"):
-            cmd_trigger = cmd_ctrl.lstrip(" remove ")
-            #logger.info(f"{fortime()}: cmd_ctrl returned cmd_trigger = {cmd_trigger}")
-            found = False
-            with open(cmd_list, "r") as file:
-                lines = file.readlines()
-
-            with open(cmd_list, "r") as f:
-                for line in lines:
-                    if cmd_trigger not in line:
-                        f.write(str(line))
-                    else:
-                        found = True
-
-            if found:
-                await cmd.reply("Command removed successfully")
-            else:
-                await cmd.reply("Command not found")
-        else:
-            pass
-    else:
-        pass
-
-
 async def add_banned_term(term: str):
     with open(banned_phrases, "a") as f:
         f.write(nl)
@@ -4031,7 +4272,6 @@ async def run():
         chat.register_command('clear', archive_delete_command)
         chat.register_command('mkbkup', mkbkup_command)
         chat.register_command('addpoints', addpoints_command)
-        chat.register_command('cmd', command_control)
         # ---end
 
         chat.start()
@@ -4136,7 +4376,6 @@ async def run():
         chat.register_command('clear', archive_delete_command)
         chat.register_command('mkbkup', mkbkup_command)
         chat.register_command('addpoints', addpoints_command)
-        chat.register_command('cmd', command_control)
         # ---end
 
         chat.start()

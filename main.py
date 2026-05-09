@@ -1197,7 +1197,6 @@ async def command_pointscheck(cmd: ChatCommand):
 async def command_xpcheck(cmd: ChatCommand):
     user_id = cmd.user.id
     filename = f"{user_directory}{user_id}.json"
-
     try:
         # Read existing data
         with open(filename, "r", encoding="utf-8") as f:

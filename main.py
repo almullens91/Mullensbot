@@ -7,6 +7,7 @@ import datetime
 import random
 import json
 import glob
+import math
 import shutil
 from pathlib import Path
 from dotenv import load_dotenv
@@ -29,7 +30,6 @@ from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 #        -dickpunch
 #        -spank
 #        -boob
-#    -(x)add commands list(priority for carnagebot)
 #    -(x)add fight command for user fighting
 #    -(x)add more fish to "ocean"
 #    -(-)add hype event trigger
@@ -825,9 +825,19 @@ async def xp_level_check(user_id: str, user_name: str):
 
 
 async def on_message(msg: ChatMessage):
+    user_id = msg.user.id
+    user_name = msg.user.display_name
     if msg.text.startswith("!"):
+        date = datetime.datetime.now().strftime("%y-%m-%d")
+        time = datetime.datetime.now().strftime("%H:%M:%S")
+        with open(chat_file, "a", encoding="utf-8") as f:
+            f.write(f"{date}|{time}|{user_id}|{user_name}|{msg.text}\n")
         return
     elif msg.text.startswith(f"{bot_name}"):
+        date = datetime.datetime.now().strftime("%y-%m-%d")
+        time = datetime.datetime.now().strftime("%H:%M:%S")
+        with open(chat_file, "a", encoding="utf-8") as f:
+            f.write(f"{date}|{time}|{user_id}|{user_name}|{msg.text}\n")
         return
     else:
         with open(banned_phrases, "r") as file:
@@ -1003,6 +1013,9 @@ async def command_tech(cmd: ChatCommand):
     
 async def command_joe(cmd: ChatCommand):
     await cmd.reply("FUCK YOU JOE, you asshole!!")
+
+async def command_list(cmd: ChatCommand):
+    await cmd.reply(f"{cmd.user.display_name}, you can find the complete command list here: {os.getenv('command_channel')}")
 # -----End Chat Message Commands
 
 
@@ -1062,7 +1075,7 @@ async def command_phone(cmd: ChatCommand):
 
 
 async def command_shoutout(cmd: ChatCommand):
-    if cmd.user.id == target_id:
+    if cmd.user.id == target_id or cmd.user.id == id_mullensbot:
         cmd_so = cmd.text.lstrip("!so")
         if cmd_so.startswith(" @"):
             target = cmd_so.lstrip(" @")
@@ -2776,6 +2789,7 @@ async def checkin_command(cmd: ChatCommand):
     filename2 = f"{user_directory}{user_id}.json"
     user_default_data = {
         "total": 1,
+        "next_boost": 3,
         "last": fordate(),
         "boost_lvl": 1
     }
@@ -2786,49 +2800,116 @@ async def checkin_command(cmd: ChatCommand):
     else:
         with open(filename, "r", encoding="utf-8") as f:
             user_data = json.load(f)
+        if "next_boost" not in user_data:
+            current_checkins = user_data['total']
+            last_checkin = user_data['last']
+            boost_lvl = user_data['boost_lvl']
+            boost_math = math.ceil(int(current_checkins) / 3) * 3
+            #logger.info(f"{fortime()}: boost_math returned {boost_math}")
+            user_data['next_boost'] = boost_math
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(user_data, f, indent=4)
+            await asyncio.sleep(1)
+            with open(filename, "r", encoding="utf-8") as f:
+                u_data = json.load(f)
+            total_checkins = u_data['total']
+            next_boost = u_data['next_boost']
+            last_checkin = u_data['last']
+            boost_lvl = u_data['boost_lvl']
 
-        total_checkins = user_data['total']
-        last_checkin = user_data['last']
-        boost_lvl = user_data['boost_lvl']
-
-        if last_checkin == fordate():
-            await cmd.reply(f"{cmd.user.display_name}, you've already checked in today, {total_checkins} total check-ins")
-        else:
-            booster_trigger = 3 * boost_lvl
-            if total_checkins == booster_trigger:
-                new_total = total_checkins + 1
-                new_checkin = fordate()
-                new_boost = boost_lvl + 1
-                user_data['total'] = new_total
-                user_data['last'] = new_checkin
-                user_data['boost'] = new_boost
-                with open(filename, "w", encoding="utf-8") as f:
-                    json.dump(user_data, f, indent=4)
-                    f.close()
-                #logger.info(f"{fortime()}: {filename} updated successfully")
-                #delete_last_line()
-                with open(filename2, "r", encoding="utf-8") as f:
-                    user_data = json.load(f)
-                current_points = user_data['points']
-                booster = 1000 * boost_lvl
-                new_points = current_points + booster
-                user_data['points'] = new_points
-                with open(filename2, "w", encoding="utf-8") as f:
-                    json.dump(user_data, f, indent=4)
-                #logger.info(f"{fortime()}: {filename2} updated successfully")
-                #delete_last_line()
-                await cmd.reply(f"{cmd.user.display_name}, you have successfully checked in, {new_total} total check-ins. You gained {booster} points for continuous checkins.")
+            if last_checkin == fordate():
+                await cmd.reply(
+                    f"{cmd.user.display_name}, you've already checked in today, {total_checkins} total check-ins")
             else:
-                new_total = total_checkins + 1
-                new_checkin = fordate()
-                user_data['total'] = new_total
-                user_data['last'] = new_checkin
-                with open(filename, "w", encoding="utf-8") as f:
-                    json.dump(user_data, f, indent=4)
-                    f.close()
-                await cmd.reply(f"{cmd.user.display_name}, you have successfully checked in. You are now at {new_total} cumulative check ins")
-                #logger.info(f"{fortime()}: {filename} updated successfully")
-                #delete_last_line()
+                booster_trigger = next_boost
+                if total_checkins == booster_trigger:
+                    new_total = total_checkins + 1
+                    new_checkin = fordate()
+                    if boost_lvl == 10:
+                        new_boost = boost_lvl
+                    else:
+                        new_boost = boost_lvl + 1
+                    new_next_boost = next_boost + 3
+                    u_data['total'] = new_total
+                    u_data['last'] = new_checkin
+                    u_data['boost_lvl'] = new_boost
+                    u_data['next_boost'] = new_next_boost
+                    with open(filename, "w", encoding="utf-8") as f:
+                        json.dump(u_data, f, indent=4)
+                    # logger.info(f"{fortime()}: {filename} updated successfully")
+                    # delete_last_line()
+                    with open(filename2, "r", encoding="utf-8") as f:
+                        user_data = json.load(f)
+                    current_points = user_data['points']
+                    booster = 1000 * boost_lvl
+                    new_points = current_points + booster
+                    user_data['points'] = new_points
+                    with open(filename2, "w", encoding="utf-8") as f:
+                        json.dump(user_data, f, indent=4)
+                    # logger.info(f"{fortime()}: {filename2} updated successfully")
+                    # delete_last_line()
+                    await cmd.reply(
+                        f"{cmd.user.display_name}, you have successfully checked in, {new_total} total check-ins. You gained {booster} points for continuous checkins.")
+                else:
+                    new_total = total_checkins + 1
+                    new_checkin = fordate()
+                    u_data['total'] = new_total
+                    u_data['last'] = new_checkin
+                    with open(filename, "w", encoding="utf-8") as f:
+                        json.dump(u_data, f, indent=4)
+                        f.close()
+                    await cmd.reply(
+                        f"{cmd.user.display_name}, you have successfully checked in. You are now at {new_total} cumulative check ins")
+                    # logger.info(f"{fortime()}: {filename} updated successfully")
+                    # delete_last_line()
+        else:
+            total_checkins = user_data['total']
+            next_boost = user_data['next_boost']
+            last_checkin = user_data['last']
+            boost_lvl = user_data['boost_lvl']
+
+            if last_checkin == fordate():
+                await cmd.reply(f"{cmd.user.display_name}, you've already checked in today, {total_checkins} total check-ins")
+            else:
+                booster_trigger = next_boost
+                if total_checkins == booster_trigger:
+                    new_total = total_checkins + 1
+                    new_checkin = fordate()
+                    if boost_lvl == 10:
+                        new_boost = boost_lvl
+                    else:
+                        new_boost = boost_lvl + 1
+                        new_next_boost = next_boost + 3
+                        user_data['total'] = new_total
+                        user_data['last'] = new_checkin
+                        user_data['boost_lvl'] = new_boost
+                        user_data['next_boost'] = new_next_boost
+                        with open(filename, "w", encoding="utf-8") as f:
+                            json.dump(user_data, f, indent=4)
+                        #logger.info(f"{fortime()}: {filename} updated successfully")
+                        #delete_last_line()
+                        with open(filename2, "r", encoding="utf-8") as f:
+                            user_data = json.load(f)
+                        current_points = user_data['points']
+                        booster = 1000 * boost_lvl
+                        new_points = current_points + booster
+                        user_data['points'] = new_points
+                        with open(filename2, "w", encoding="utf-8") as f:
+                            json.dump(user_data, f, indent=4)
+                        #logger.info(f"{fortime()}: {filename2} updated successfully")
+                        #delete_last_line()
+                        await cmd.reply(f"{cmd.user.display_name}, you have successfully checked in, {new_total} total check-ins. You gained {booster} points for continuous checkins.")
+                else:
+                    new_total = total_checkins + 1
+                    new_checkin = fordate()
+                    user_data['total'] = new_total
+                    user_data['last'] = new_checkin
+                    with open(filename, "w", encoding="utf-8") as f:
+                        json.dump(user_data, f, indent=4)
+                        f.close()
+                    await cmd.reply(f"{cmd.user.display_name}, you have successfully checked in. You are now at {new_total} cumulative check ins")
+                    #logger.info(f"{fortime()}: {filename} updated successfully")
+                    #delete_last_line()
 
 
 async def command_bonk(cmd: ChatCommand):
@@ -5254,6 +5335,7 @@ async def run():
         chat.register_command('donate', command_donate)
         chat.register_command('tech', command_tech)
         chat.register_command('joe', command_joe)
+        chat.register_command('commands', command_list)
         # ---end chat message command activation
         
         # ---simple command activation
@@ -5360,6 +5442,7 @@ async def run():
         chat.register_command('donate', command_donate)
         chat.register_command('tech', command_tech)
         chat.register_command('joe', command_joe)
+        chat.register_command('commands', command_list)
         # ---end chat message command activation
         
         # ---simple command activation

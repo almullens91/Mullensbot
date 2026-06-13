@@ -273,7 +273,7 @@ fish_items_tier0 = [
     {"item": "Eel", "points": 25},
     {"item": "Clown Fish", "points": 30},
     {"item": "Lost Smartphone", "points": 15},
-    {"item": "Shark", "points": 0}
+    {"item": "Shark", "points": 500}
 ]
 
 
@@ -294,7 +294,7 @@ fish_items_tier1 = [
     {"item": "Eel", "points": 25},
     {"item": "Clown Fish", "points": 30},
     {"item": "Lost Smartphone", "points": 15},
-    {"item": "Shark", "points": 0}
+    {"item": "Shark", "points": 500}
 ]
 
 # -----tier 2 items valued 5 to 50
@@ -317,7 +317,7 @@ fish_items_tier2 = [
     {"item": "Clown Fish", "points": 30},
     {"item": "Lost Smartphone", "points": 15},
     {"item": "Gold Coin", "points": 50},
-    {"item": "Shark", "points": 0}
+    {"item": "Shark", "points": 500}
 ]
 
 # -----tier 3 items valued 5 to 100
@@ -342,7 +342,7 @@ fish_items_tier3 = [
     {"item": "Lost Smartphone", "points": 5},
     {"item": "Gold Coin", "points": 50},
     {"item": "Gold Bar", "points": 100},
-    {"item": "Shark", "points": 0}
+    {"item": "Shark", "points": 500}
 ]
 
 # -----tier 4 items valued 5 to 200
@@ -369,7 +369,7 @@ fish_items_tier4 = [
     {"item": "Gold Coin", "points": 50},
     {"item": "Gold Bar", "points": 100},
     {"item": "Bag of Gold", "points": 200},
-    {"item": "Shark", "points": 0}
+    {"item": "Shark", "points": 500}
 ]
 
 # -----tier 5 items valued 5 to 500(final)
@@ -397,7 +397,7 @@ fish_items_tier5 = [
     {"item": "Gold Bar", "points": 100},
     {"item": "Bag of Gold", "points": 200},
     {"item": "Chest of Gold", "points": 500},
-    {"item": "Shark", "points": 0},
+    {"item": "Shark", "points": 500},
     {"item": "Health Jar", "points": 0}
 ]
 
@@ -3480,7 +3480,7 @@ async def add_banned_term(term: str):
 
 
 async def banned_term_command(cmd: ChatCommand):
-    if cmd.user.id == target_id:
+    if cmd.user.id == target_id or cmd.user.id == id_mullensbot:
         cmd_ban_term = cmd.text.lstrip("!banterm")
         if cmd_ban_term.startswith(" add"):
             term = cmd_ban_term.lstrip(" add ")
@@ -3579,7 +3579,7 @@ async def live_command(cmd: ChatCommand):
 
 async def addpoints_command(cmd: ChatCommand):
     cmd_addpoints = cmd.text.lstrip("!addpoints")
-    if cmd.user.id == target_id:
+    if cmd.user.id == target_id or cmd.user.id == id_mullensbot:
         if cmd_addpoints.startswith(" @"):
             points = cmd_addpoints.split(' ', 2)[-1]
             if not points.isdigit():
@@ -3670,7 +3670,7 @@ async def reset_command(cmd: ChatCommand):
 
 async def command_pause(cmd: ChatCommand):
     try:
-        if cmd.user.id == target_id or cmd.user.id == id_mullens:
+        if cmd.user.id == target_id or cmd.user.id == id_mullensbot:
             with open(channel_doc, "r", encoding="utf-8") as f:
                 data = json.load(f)
             autocast_enabled = data["autocast"]
@@ -3694,7 +3694,7 @@ async def command_pause(cmd: ChatCommand):
 
 async def command_resume(cmd: ChatCommand):
     try:
-        if cmd.user.id == target_id or cmd.user.id == id_mullens:
+        if cmd.user.id == target_id or cmd.user.id == id_mullensbot:
             with open(channel_doc, "r", encoding="utf-8") as f:
                 data = json.load(f)
             autocast_enabled = data["autocast"]
@@ -4522,43 +4522,37 @@ async def command_fish(cmd: ChatCommand):
                             f"{cmd.user.display_name}, you caught a {item['item']} worth {item['points']} points. You now have {new_points} points, and automatically level up to fishtier 1!")
                     elif fishtier == 1:
                         item = random.choice(fish_items_tier1)
-                        current_points = user_data["points"]
-                        new_points = current_points + item["points"]
-                        user_data["points"] = new_points
-                        user_data["inventory"] += 1
-                        with open(filename, "w", encoding="utf-8") as f:
-                            json.dump(user_data, f, indent=4)
-                        filename2 = f"{inventory_dir}{user_id}.json"
-                        with open(filename2, "r", encoding="utf-8") as f:
-                            inventory_data = json.load(f)
-                        inventory_data[f"{item['item']}"] += 1
-                        with open(filename2, "w", encoding="utf-8") as f:
-                            json.dump(inventory_data, f, indent=4)
-                        await cmd.reply(
-                            f"{cmd.user.display_name}, you caught a {item['item']} worth {item['points']} points. You now have {new_points} points!")
+                        if item['item'] == "Shark":
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                        else:
+                            current_points = user_data["points"]
+                            new_points = current_points + item["points"]
+                            user_data["points"] = new_points
+                            user_data["inventory"] += 1
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            filename2 = f"{inventory_dir}{user_id}.json"
+                            with open(filename2, "r", encoding="utf-8") as f:
+                                inventory_data = json.load(f)
+                            inventory_data[f"{item['item']}"] += 1
+                            with open(filename2, "w", encoding="utf-8") as f:
+                                json.dump(inventory_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a {item['item']} worth {item['points']} points. You now have {new_points} points!")
                     elif fishtier == 2:
                         item = random.choice(fish_items_tier2)
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, loosing a life. you now have {new_lives} left...")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4585,26 +4579,13 @@ async def command_fish(cmd: ChatCommand):
                     elif fishtier == 3:
                         item = random.choice(fish_items_tier3)
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, loosing a life. you now have {new_lives} left...")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4631,26 +4612,13 @@ async def command_fish(cmd: ChatCommand):
                     elif fishtier == 4:
                         item = random.choice(fish_items_tier4)
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, loosing a life. you now have {new_lives} left...")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4677,26 +4645,13 @@ async def command_fish(cmd: ChatCommand):
                     elif fishtier == 5:
                         item = random.choice(fish_items_tier5)
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await cmd.reply(
-                                    f"{cmd.user.display_name}, you caught a shark, loosing a life. you now have {new_lives} left...")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4751,83 +4706,14 @@ async def command_autofish(user_id: str, user_name: str):
                     user_data["autocasts"] = new_casts
                     user_data["inventory"] += 1
                     if current_casts == 1:
-                        user_data["casting"] = 0
-                        end_time = f"{fortime()}"
-                        casts = 0
-                        cost = 0
-                        tracker_type = "cast"
-                        gain = item['points']
-                        track_autocasts(user_id, tracker_type, casts, cost, gain, end_time)
-                        await asyncio.sleep(5)
-
-                        with open(filename, "w", encoding="utf-8") as f:
-                            json.dump(user_data, f, indent=4)
-                        with open(filename3, "r", encoding="utf-8") as f:
-                            tracker_data = json.load(f)
-                        tracker_casts = tracker_data['casts']
-                        tracker_cost = tracker_data['cost']
-                        tracker_gain = tracker_data['gain']
-                        true_gain = tracker_gain - tracker_cost
-                        filename4 = f"{inventory_dir}{user_id}.json"
-                        with open(filename4, "r", encoding="utf-8") as f:
-                            inventory_data = json.load(f)
-                        inventory_data[f"{item['item']}"] += 1
-                        with open(filename4, "w", encoding="utf-8") as f:
-                            json.dump(inventory_data, f, indent=4)
-                        await bot.send_chat_message(target_id, user.id,
-                                                    f"{user_name}, you caught a {item['item']} worth {item['points']}. You now have {new_points} points! Your autocasts have finished! You casted {tracker_casts} casts, for a gain of {true_gain} points.")
-                        os.rename(filename3, f"{autocast_archive}/{user_id}_{fortime()}.json")
-                        return
-                    else:
-                        with open(filename, "w", encoding="utf-8") as f:
-                            json.dump(user_data, f, indent=4)
-                        filename3 = f"{inventory_dir}{user_id}.json"
-                        with open(filename3, "r", encoding="utf-8") as f:
-                            inventory_data = json.load(f)
-                        inventory_data[f"{item['item']}"] += 1
-                        tracker_type = "cast"
-                        casts = 0
-                        cost = 0
-                        gain = item['points']
-                        end_time = "null"
-                        track_autocasts(user_id, tracker_type, casts, cost, gain, end_time)
-                        with open(filename3, "w", encoding="utf-8") as f:
-                            json.dump(inventory_data, f, indent=4)
-                        await bot.send_chat_message(target_id, user.id,
-                                                    f"{user_name}, you caught a {item['item']} worth {item['points']}. You now have {new_points} points! You have {new_casts} casts remaining!")
-                        await asyncio.sleep(120)
-                        await command_autofish(user_id, user_name)
-                elif fishtier == 2:
-                    item = random.choice(fish_items_tier2)
-                    current_points = user_data["points"]
-                    new_points = current_points + item["points"]
-                    current_casts = user_data["autocasts"]
-                    new_casts = current_casts - 1
-                    user_data["points"] = new_points
-                    user_data["autocasts"] = new_casts
-                    user_data["inventory"] += 1
-                    if current_casts == 1:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. Your casts have expired!")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4851,28 +4737,89 @@ async def command_autofish(user_id: str, user_name: str):
                             return
                     else:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. You have {new_casts} casts remaining!")
-                                await asyncio.sleep(110)
-                                await command_autofish(user_id, user_name)
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                            await asyncio.sleep(120)
+                            await command_autofish(user_id, user_name)
+                        elif item['item'] == "Health Jar":
+                            current_lives = user_data["lives"]
+                            new_lives = current_lives + 1
+                            user_data["lives"] = new_lives
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await bot.send_chat_message(target_id, user.id,
+                                                        f"{user_name}, you caught a Health Jar. You gain a life. You now have {new_lives} lives. You have {new_casts} casts remaining!")
+                            await asyncio.sleep(120)
+                            await command_autofish(user_id, user_name)
+                        else:
+                            user_data["inventory"] += 1
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            filename2 = f"{inventory_dir}{user_id}.json"
+                            with open(filename2, "r", encoding="utf-8") as f:
+                                inventory_data = json.load(f)
+                            inventory_data[f"{item['item']}"] += 1
+                            with open(filename2, "w", encoding="utf-8") as f:
+                                json.dump(inventory_data, f, indent=4)
+                            await bot.send_chat_message(target_id, user.id,
+                                                        f"{user_name}, you caught a {item['item']} worth {item['points']}. You now have {new_points} points! You have {new_casts} casts remaining!")
+                            await asyncio.sleep(120)
+                            await command_autofish(user_id, user_name)
+                elif fishtier == 2:
+                    item = random.choice(fish_items_tier2)
+                    current_points = user_data["points"]
+                    new_points = current_points + item["points"]
+                    current_casts = user_data["autocasts"]
+                    new_casts = current_casts - 1
+                    user_data["points"] = new_points
+                    user_data["autocasts"] = new_casts
+                    user_data["inventory"] += 1
+                    if current_casts == 1:
+                        if item['item'] == "Shark":
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                        elif item['item'] == "Health Jar":
+                            current_lives = user_data["lives"]
+                            new_lives = current_lives + 1
+                            user_data["lives"] = new_lives
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await bot.send_chat_message(target_id, user.id,
+                                                        f"{user_name}, you caught a Health Jar. You gain a life. You now have {new_lives} lives. Your casts have expired!")
+                        else:
+                            user_data["casting"] = 0
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            filename2 = f"{inventory_dir}{user_id}.json"
+                            with open(filename2, "r", encoding="utf-8") as f:
+                                inventory_data = json.load(f)
+                            inventory_data[f"{item['item']}"] += 1
+                            with open(filename2, "w", encoding="utf-8") as f:
+                                json.dump(inventory_data, f, indent=4)
+                            await bot.send_chat_message(target_id, user.id,
+                                                        f"{user_name}, you caught a {item['item']} worth {item['points']}. You now have {new_points} points! Your autocasts have finished!")
+                            return
+                    else:
+                        if item['item'] == "Shark":
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                            await asyncio.sleep(110)
+                            await command_autofish(user_id, user_name)
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4908,26 +4855,13 @@ async def command_autofish(user_id: str, user_name: str):
                     user_data["inventory"] += 1
                     if current_casts == 1:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. Your casts have expired!")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -4951,28 +4885,15 @@ async def command_autofish(user_id: str, user_name: str):
                             return
                     else:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. You have {new_casts} casts remaining!")
-                                await asyncio.sleep(100)
-                                await command_autofish(user_id, user_name)
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                            await asyncio.sleep(100)
+                            await command_autofish(user_id, user_name)
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -5008,26 +4929,13 @@ async def command_autofish(user_id: str, user_name: str):
                     user_data["inventory"] += 1
                     if current_casts == 1:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. Your casts have expired!")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -5051,28 +4959,15 @@ async def command_autofish(user_id: str, user_name: str):
                             return
                     else:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. You have {new_casts} casts remaining!")
-                                await asyncio.sleep(90)
-                                await command_autofish(user_id, user_name)
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                            await asyncio.sleep(90)
+                            await command_autofish(user_id, user_name)
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -5105,28 +5000,16 @@ async def command_autofish(user_id: str, user_name: str):
                     new_casts = current_casts - 1
                     user_data["points"] = new_points
                     user_data["autocasts"] = new_casts
+                    user_data["inventory"] += 1
                     if current_casts == 1:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. Your casts have expired!")
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1
@@ -5150,28 +5033,15 @@ async def command_autofish(user_id: str, user_name: str):
                             return
                     else:
                         if item['item'] == "Shark":
-                            if user_data["lives"] == 1:
-                                user_data["lives"] = 3
-                                user_data["level"] = 0
-                                user_data["xp"] = 0
-                                user_data["fishtier"] = 0
-                                user_data["points"] = 0
-                                user_data["autocasts"] = 0
-                                user_data["casting"] = 0
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, had no lives left and died. In order to return to the living, you gave up everything you had.")
-                            else:
-                                current_lives = user_data["lives"]
-                                new_lives = current_lives - 1
-                                user_data["lives"] = new_lives
-                                with open(filename, "w", encoding="utf-8") as f:
-                                    json.dump(user_data, f, indent=4)
-                                await bot.send_chat_message(target_id, user.id,
-                                                            f"{user_name}, you caught a shark, loosing a life. you now have {new_lives} left. You have {new_casts} casts remaining!")
-                                await asyncio.sleep(80)
-                                await command_autofish(user_id, user_name)
+                            current_points = user_data["points"]
+                            new_points = current_points - 500
+                            user_data['points'] = new_points
+                            with open(filename, "w", encoding="utf-8") as f:
+                                json.dump(user_data, f, indent=4)
+                            await cmd.reply(
+                                f"{cmd.user.display_name}, you caught a shark, loosing 500 points. You now have {new_points} points.")
+                            await asyncio.sleep(80)
+                            await command_autofish(user_id, user_name)
                         elif item['item'] == "Health Jar":
                             current_lives = user_data["lives"]
                             new_lives = current_lives + 1

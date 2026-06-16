@@ -3717,6 +3717,12 @@ async def command_resume(cmd: ChatCommand):
 
 
 # --------Mini Games---------------#
+async def command_dino(cmd: ChatCommand):
+    if not cmd.user.id == target_id:
+        pass
+    else:
+        await cmd.reply(f"{cmd.user.display_name}, dino commands are not available right now.")
+
 async def command_bet(cmd: ChatCommand):
     user_id = cmd.user.id
     cmd_bet = cmd.text.lstrip("!bet")

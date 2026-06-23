@@ -9,6 +9,10 @@ import json
 import glob
 import math
 import shutil
+import youtube_linkage
+import stream_ui
+import spotify_linkage
+import obs_linkage
 from pathlib import Path
 from dotenv import load_dotenv
 from twitchAPI.twitch import Twitch, TwitchUser
@@ -76,7 +80,7 @@ from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 #    -(x)Quest
 #    -(x)Create Music Player
 #      sr command(song request)
-#    -(x)Create UI(popups for alerts, persistent display for goal/viewer tracking or marathon)
+#    -(-)Create UI(popups for alerts, persistent display for goal/viewer tracking or marathon)
 
 load_dotenv()
 
